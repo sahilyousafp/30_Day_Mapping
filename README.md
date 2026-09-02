@@ -14,6 +14,18 @@ step, no monorepo tooling.
 
 More days get added as the challenge progresses.
 
+## Screenshots
+
+### Day 18 - Star Constellation Map Platform
+
+Barcelona, 2 Sep 2026 20:00 - 301 constellation stars and 112 background stars projected
+over the location's night sky, with constellation lines and labels.
+
+![Star Constellation Map Platform - a dark world map centred on Europe with a dense cluster of yellow star markers, constellation labels, and a control panel showing the selected coordinates](docs/screenshots/day18-star-map.jpg)
+
+Day 19 and Day 20 render through Mapbox and need a valid access token in `config.js`
+before they will draw anything - screenshots pending.
+
 ## Running a project
 
 ### Static projects (Day 19, Day 20)

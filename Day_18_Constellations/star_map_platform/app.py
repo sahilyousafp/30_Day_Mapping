@@ -40,7 +40,7 @@ class StarCalculator:
         self.constellation_lines = {}
         
         try:
-            with open(const_path, 'r') as f:
+            with open(const_path, 'r', encoding='utf-8') as f:
                 for line in f:
                     if line.strip() and not line.startswith('#'):
                         parts = line.strip().split()
