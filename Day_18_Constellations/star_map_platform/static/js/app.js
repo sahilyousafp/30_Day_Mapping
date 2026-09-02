@@ -3,6 +3,23 @@ let selectedLocation = null;
 let starMarkers = [];
 let locationMarker = null;
 let constellationInfoCache = {};
+let labelCullHandler = null;
+
+// The sky is drawn as an azimuthal plot centred on the observer: radius grows with zenith
+// distance (90 - altitude), so the zenith sits at the centre and the horizon at the rim.
+// Longitude degrees are compressed by cos(latitude) on a Mercator map, so the eastward
+// offset is divided by it - without that the disc comes out stretched vertically.
+const SKY_RADIUS_DEG = 15;
+
+function skyToLatLng(altitude, azimuth) {
+    const radius = ((90 - altitude) / 90) * SKY_RADIUS_DEG;
+    const az = azimuth * Math.PI / 180;
+    const latRad = selectedLocation.lat * Math.PI / 180;
+    return [
+        selectedLocation.lat + radius * Math.cos(az),
+        selectedLocation.lon + radius * Math.sin(az) / Math.cos(latRad)
+    ];
+}
 
 // Initialize map
 function initMap() {
@@ -169,13 +186,8 @@ function displayStars(stars, constellationLines, constellationCenters) {
     // Display constellation lines first (behind stars)
     if (constellationLines && constellationLines.length > 0) {
         constellationLines.forEach(line => {
-            const distance1 = (line.star1.alt / 90) * 15;
-            const lat1 = selectedLocation.lat + distance1 * Math.cos(line.star1.az * Math.PI / 180);
-            const lon1 = selectedLocation.lon + distance1 * Math.sin(line.star1.az * Math.PI / 180);
-            
-            const distance2 = (line.star2.alt / 90) * 15;
-            const lat2 = selectedLocation.lat + distance2 * Math.cos(line.star2.az * Math.PI / 180);
-            const lon2 = selectedLocation.lon + distance2 * Math.sin(line.star2.az * Math.PI / 180);
+            const [lat1, lon1] = skyToLatLng(line.star1.alt, line.star1.az);
+            const [lat2, lon2] = skyToLatLng(line.star2.alt, line.star2.az);
             
             const polyline = L.polyline([[lat1, lon1], [lat2, lon2]], {
                 color: '#4a90e2',
@@ -189,9 +201,7 @@ function displayStars(stars, constellationLines, constellationCenters) {
 
     // Display regular stars first (smaller, behind constellation stars)
     regularStars.forEach(star => {
-        const distance = (star.altitude / 90) * 15;
-        const starLat = selectedLocation.lat + distance * Math.cos(star.azimuth * Math.PI / 180);
-        const starLon = selectedLocation.lon + distance * Math.sin(star.azimuth * Math.PI / 180);
+        const [starLat, starLon] = skyToLatLng(star.altitude, star.azimuth);
 
         // Smaller size for regular stars
         const starSize = Math.max(2, 8 - star.magnitude * 1.5);
@@ -234,9 +244,7 @@ function displayStars(stars, constellationLines, constellationCenters) {
 
     // Display constellation stars (larger, brighter, on top)
     constellationStars.forEach(star => {
-        const distance = (star.altitude / 90) * 15;
-        const starLat = selectedLocation.lat + distance * Math.cos(star.azimuth * Math.PI / 180);
-        const starLon = selectedLocation.lon + distance * Math.sin(star.azimuth * Math.PI / 180);
+        const [starLat, starLon] = skyToLatLng(star.altitude, star.azimuth);
 
         // Larger size for constellation stars
         const starSize = Math.max(5, 18 - star.magnitude * 2.5);
@@ -282,10 +290,10 @@ function displayStars(stars, constellationLines, constellationCenters) {
     if (constellationCenters && Object.keys(constellationCenters).length > 0) {
         console.log('Constellation centers received:', Object.keys(constellationCenters));
         
+        const placedLabels = [];
+
         for (const [constAbbr, center] of Object.entries(constellationCenters)) {
-            const distance = (center.alt / 90) * 15;
-            const labelLat = selectedLocation.lat + distance * Math.cos(center.az * Math.PI / 180);
-            const labelLon = selectedLocation.lon + distance * Math.sin(center.az * Math.PI / 180);
+            const [labelLat, labelLon] = skyToLatLng(center.alt, center.az);
             
             const displayName = constAbbr;
             
@@ -353,25 +361,47 @@ function displayStars(stars, constellationLines, constellationCenters) {
             });
 
             starMarkers.push(label);
+            placedLabels.push({ label, alt: center.alt });
         }
         
-        // Prevent map location selection when clicking constellation labels
-        // but allow popup to open
-        setTimeout(() => {
-            const labels = document.querySelectorAll('.constellation-label');
-            labels.forEach(labelEl => {
-                // Remove the click handler that was blocking popups
-                labelEl.style.cursor = 'pointer';
-            });
-        }, 100);
+        // Crowded parts of the sky put labels on top of each other. Walk them from the
+        // highest altitude down - those are the most prominent overhead - and hide any whose
+        // box overlaps one already kept. visibility:hidden rather than display:none so the
+        // boxes still measure, and it re-runs on move/zoom because what collides changes.
+        const cullOverlappingLabels = () => {
+            const kept = [];
+
+            placedLabels
+                .slice()
+                .sort((a, b) => b.alt - a.alt)
+                .forEach(({ label }) => {
+                    const el = label.getElement();
+                    if (!el) return;
+
+                    el.style.cursor = 'pointer';
+                    el.style.visibility = 'visible';
+
+                    const box = el.getBoundingClientRect();
+                    const collides = kept.some(k =>
+                        box.left < k.right && k.left < box.right &&
+                        box.top < k.bottom && k.top < box.bottom);
+
+                    if (collides) el.style.visibility = 'hidden';
+                    else kept.push(box);
+                });
+        };
+
+        setTimeout(cullOverlappingLabels, 100);
+
+        if (labelCullHandler) map.off('moveend zoomend', labelCullHandler);
+        labelCullHandler = cullOverlappingLabels;
+        map.on('moveend zoomend', labelCullHandler);
     }
 
     // Zoom to show all stars
     if (stars.length > 0) {
         const starPositions = stars.map(star => {
-            const distance = (star.altitude / 90) * 15;
-            const lat = selectedLocation.lat + distance * Math.cos(star.azimuth * Math.PI / 180);
-            const lon = selectedLocation.lon + distance * Math.sin(star.azimuth * Math.PI / 180);
+            const [lat, lon] = skyToLatLng(star.altitude, star.azimuth);
             return L.latLng(lat, lon);
         });
         const bounds = L.latLngBounds(starPositions);

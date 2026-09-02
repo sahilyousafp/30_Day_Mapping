@@ -98,8 +98,12 @@ d3.csv(CSV_URL).then(launchData => {
     document.getElementById('country-count').textContent = Object.keys(launchesByCountry).length;
     document.getElementById('top-country').textContent = topCountry.name;
     
-    // Wait for map to load
-    map.on('load', () => {
+    // Wait for the style to be ready. The CSV request and the map load race each other:
+    // if the style finished first, 'load' has already fired and a listener added now would
+    // never run, leaving the loading spinner up forever.
+    const whenStyleReady = fn => (map.isStyleLoaded() ? fn() : map.on('load', fn));
+
+    whenStyleReady(() => {
         console.log('🗺️ Map loaded');
         
         // Use Mapbox's built-in country boundaries

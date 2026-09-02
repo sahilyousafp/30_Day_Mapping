@@ -18,10 +18,12 @@ More days get added as the challenge progresses.
 
 ### Day 18 - Star Constellation Map Platform
 
-Barcelona, 2 Sep 2026 20:00 - 301 constellation stars and 112 background stars projected
-over the location's night sky, with constellation lines and labels.
+Barcelona, 2 Sep 2026 20:00 - 301 constellation stars and 112 background stars plotted as an
+azimuthal sky chart centred on the observer, zenith at the middle and horizon at the rim.
+Labels are culled on collision, so the ones that survive stay readable and more appear as
+you zoom in.
 
-![Star Constellation Map Platform - a dark world map centred on Europe with a dense cluster of yellow star markers, constellation labels, and a control panel showing the selected coordinates](docs/screenshots/day18-star-map.jpg)
+![Star Constellation Map Platform - a dark map centred on Europe showing a disc of yellow star markers with non-overlapping constellation labels, beside a control panel with the selected coordinates and a star count](docs/screenshots/day18-star-map.jpg)
 
 ### Day 19 - Global Rocket Launches 3D Globe
 
@@ -32,10 +34,11 @@ USA dominates in deep red, Europe in orange.
 
 ### Day 20 - Live Ocean Currents Globe
 
-Heatmap mode, showing live current velocities pulled from the Open-Meteo marine API with
-named hotspots for the Gulf Stream, Humboldt Current and Antarctic Circumpolar.
+Particle mode, animating live current velocities pulled from the Open-Meteo marine API across
+a 10 degree global grid. Red streaks mark the fastest flows. Switch to Heatmap mode for a
+density view with named hotspots like the Gulf Stream and Antarctic Circumpolar.
 
-![Live Ocean Currents - a dark globe over a starfield with a blue current heatmap in the southern ocean and red markers labelling the Gulf Stream, Humboldt Current and Antarctic Circumpolar](docs/screenshots/day20-ocean-currents.jpg)
+![Live Ocean Currents - a dark globe over a starfield with cyan and red current streaks tracing flows across the Atlantic, beside a panel toggling between Particles and Heatmap modes](docs/screenshots/day20-ocean-currents.jpg)
 
 Both Mapbox projects need a valid access token in `config.js` before they draw anything.
 

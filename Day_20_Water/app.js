@@ -29,9 +29,18 @@ const map = new mapboxgl.Map({
 const btnParticles = document.getElementById('btn-particles');
 const btnHeatmap = document.getElementById('btn-heatmap');
 const loadingIndicator = document.getElementById('loading-indicator');
+// The indicator holds a spinner plus a label; only ever write to the label.
+const loadingLabel = loadingIndicator.querySelector('span');
 
 let currentMode = 'particles'; // 'particles' or 'heatmap'
 let oceanData = null;
+
+// Sampling grid, in degrees. Open-Meteo's free tier allows roughly 600 locations per
+// minute; a 10 degree grid over -80..80 is 16 x 36 = 576 points, so the whole globe fits
+// inside one minute's budget. A 5 degree grid needs 2304 points and gets cut off by HTTP
+// 429 about a third of the way through, which silently left only the southern ocean
+// populated. GRID_STEP is shared with getVector so lookups land on sampled coordinates.
+const GRID_STEP = 10;
 
 // Global Event Listeners
 btnParticles.addEventListener('click', () => {
@@ -81,59 +90,63 @@ async function fetchOceanData() {
     loadingIndicator.classList.remove('hidden');
     console.log("Fetching ocean data...");
 
-    // Open-Meteo Marine API
-    // We need higher resolution to see "whirlpools" (strong currents like Gulf Stream).
-    // 5 degree grid: ~180/5 * 360/5 = 36 * 72 = 2592 points.
-
-    const step = 5;
-    const chunks = [];
-
-    // Create chunks by latitude bands to keep requests manageable
-    // Expanded range: -80 to 80 to cover more of the globe
-    for (let latStart = -80; latStart < 80; latStart += 10) {
-        const chunkLocs = [];
-        for (let lat = latStart; lat < latStart + 10; lat += step) {
-            for (let lon = -180; lon < 180; lon += step) {
-                chunkLocs.push({ lat, lon });
-            }
+    // Build the full sample grid, then send it in batches the API will accept.
+    const locations = [];
+    for (let lat = -80; lat < 80; lat += GRID_STEP) {
+        for (let lon = -180; lon < 180; lon += GRID_STEP) {
+            locations.push({ lat, lon });
         }
-        chunks.push(chunkLocs);
+    }
+
+    const BATCH_SIZE = 144;
+    const batches = [];
+    for (let i = 0; i < locations.length; i += BATCH_SIZE) {
+        batches.push(locations.slice(i, i + BATCH_SIZE));
+    }
+
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    // One batch, retrying when the API says we have exceeded its per-minute limit.
+    async function fetchBatch(batch, attempt = 0) {
+        const latStr = batch.map(l => l.lat).join(',');
+        const lonStr = batch.map(l => l.lon).join(',');
+        const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${latStr}` +
+                    `&longitude=${lonStr}&current=ocean_current_velocity,ocean_current_direction` +
+                    `&timezone=auto`;
+
+        const response = await fetch(url);
+
+        if (response.status === 429 && attempt < 2) {
+            // Retry-After is in seconds when present; the limit is per minute otherwise.
+            const retryAfter = Number(response.headers.get('Retry-After')) || 60;
+            console.warn(`Rate limited, waiting ${retryAfter}s before retrying batch...`);
+            loadingLabel.textContent = `Rate limited - retrying in ${retryAfter}s...`;
+            await delay(retryAfter * 1000);
+            return fetchBatch(batch, attempt + 1);
+        }
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return processChunk(await response.json(), batch);
     }
 
     let allFeatures = [];
+    let failed = 0;
 
-    // Helper for delay
-    const delay = ms => new Promise(res => setTimeout(res, ms));
-
-    // Fetch chunks individually so one failure doesn't kill the whole app
-    for (const chunk of chunks) {
+    for (let i = 0; i < batches.length; i++) {
+        loadingLabel.textContent = `Loading ocean currents (${i + 1}/${batches.length})...`;
         try {
-            const latStr = chunk.map(l => l.lat).join(',');
-            const lonStr = chunk.map(l => l.lon).join(',');
-
-            if (!latStr) continue;
-
-            const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${latStr}&longitude=${lonStr}&current=ocean_current_velocity,ocean_current_direction&timezone=auto`;
-
-            // Add a small delay to respect rate limits
             await delay(100);
-
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-            const data = await response.json();
-
-            const chunkFeatures = processChunk(data, chunk);
-            allFeatures = allFeatures.concat(chunkFeatures);
-            console.log(`Fetched chunk with ${chunkFeatures.length} points.`);
-
+            allFeatures = allFeatures.concat(await fetchBatch(batches[i]));
         } catch (error) {
-            console.warn("Error fetching chunk, skipping:", error);
-            // Continue to next chunk instead of aborting
+            failed++;
+            console.warn(`Batch ${i + 1}/${batches.length} failed, skipping:`, error);
         }
     }
 
-    console.log(`Total features fetched: ${allFeatures.length}`);
+    console.log(`Total features fetched: ${allFeatures.length} of ${locations.length} sampled points`);
+    if (failed > 0) {
+        console.warn(`${failed} of ${batches.length} batches failed - coverage is incomplete.`);
+    }
 
     if (allFeatures.length > 0) {
         oceanData = {
@@ -142,7 +155,10 @@ async function fetchOceanData() {
         };
         initVisualization();
     } else {
-        alert("Failed to fetch any ocean data. Check console.");
+        console.error("Failed to fetch any ocean data.");
+        loadingLabel.textContent = 'Could not load ocean data - check the console.';
+        loadingIndicator.querySelector('.spinner')?.remove();
+        return;
     }
 
     loadingIndicator.classList.add('hidden');
@@ -154,6 +170,11 @@ function processChunk(apiData, locations) {
 
         features = apiData.map((locData, index) => {
             if (!locData.current) return null;
+
+            // Land and no-data points come back with null values; NaN vectors from these
+            // propagate into particle positions and make them disappear.
+            if (locData.current.ocean_current_velocity == null ||
+                locData.current.ocean_current_direction == null) return null;
 
             const lat = locations[index].lat;
             const lon = locations[index].lon;
@@ -229,7 +250,7 @@ function initVisualization() {
     });
 
     function getVector(lon, lat) {
-        const step = 5;
+        const step = GRID_STEP;
         const rLat = Math.round(lat / step) * step;
         const rLon = Math.round(lon / step) * step;
         const key = `${rLat},${rLon}`;
@@ -350,8 +371,6 @@ function initVisualization() {
         onAdd: function (map, gl) {
             this.map = map;
             this.canvas = document.createElement('canvas');
-            this.canvas.width = this.map.getCanvas().width;
-            this.canvas.height = this.map.getCanvas().height;
             this.context = this.canvas.getContext('2d');
             this.map.getCanvasContainer().appendChild(this.canvas);
             this.canvas.style.position = 'absolute';
@@ -359,6 +378,7 @@ function initVisualization() {
             this.canvas.style.left = 0;
             this.canvas.style.pointerEvents = 'none';
             this.canvas.style.zIndex = 2;
+            this.resize();
 
             this.particles = [];
             for (let i = 0; i < 4000; i++) {
@@ -378,20 +398,44 @@ function initVisualization() {
             };
         },
 
+        // map.project() returns CSS pixels, so the backing store is sized in device pixels
+        // and then scaled. Sizing it from map.getCanvas().width (device pixels) without a
+        // matching CSS size drew the particles offset and scaled on any display where
+        // devicePixelRatio is not exactly 1.
+        resize: function () {
+            const mapCanvas = this.map.getCanvas();
+            const dpr = window.devicePixelRatio || 1;
+            this.cssWidth = mapCanvas.clientWidth;
+            this.cssHeight = mapCanvas.clientHeight;
+            this.canvas.width = Math.round(this.cssWidth * dpr);
+            this.canvas.height = Math.round(this.cssHeight * dpr);
+            this.canvas.style.width = this.cssWidth + 'px';
+            this.canvas.style.height = this.cssHeight + 'px';
+            this.context.setTransform(dpr, 0, 0, dpr, 0, 0);
+        },
+
+        // On the globe, project() happily returns screen coordinates for points on the far
+        // side, which drew those particles over the near hemisphere and piled them up along
+        // the limb. Round-tripping through unproject gives back the point actually facing
+        // the camera, so a mismatch means this one is hidden behind the globe.
+        isFacingCamera: function (lon, lat) {
+            const back = this.map.unproject(this.map.project([lon, lat]));
+            const dLon = Math.abs(((back.lng - lon + 540) % 360) - 180);
+            return dLon < 1 && Math.abs(back.lat - lat) < 1;
+        },
+
         render: function (gl, matrix) {
-            const width = this.map.getCanvas().width;
-            const height = this.map.getCanvas().height;
-            if (this.canvas.width !== width || this.canvas.height !== height) {
-                this.canvas.width = width;
-                this.canvas.height = height;
+            const mapCanvas = this.map.getCanvas();
+            if (this.cssWidth !== mapCanvas.clientWidth || this.cssHeight !== mapCanvas.clientHeight) {
+                this.resize();
             }
             this.map.triggerRepaint();
         },
 
         animate: function () {
             const ctx = this.context;
-            const width = this.canvas.width;
-            const height = this.canvas.height;
+            const width = this.cssWidth;
+            const height = this.cssHeight;
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             ctx.globalCompositeOperation = 'destination-out';
@@ -427,6 +471,8 @@ function initVisualization() {
                     this.particles[i] = this.createParticle();
                     continue;
                 }
+
+                if (!this.isFacingCamera(p.lon, p.lat)) continue;
 
                 const screenP = this.map.project([p.lon, p.lat]);
                 if (screenP.x < -10 || screenP.x > width + 10 || screenP.y < -10 || screenP.y > height + 10) {
