@@ -23,8 +23,21 @@ over the location's night sky, with constellation lines and labels.
 
 ![Star Constellation Map Platform - a dark world map centred on Europe with a dense cluster of yellow star markers, constellation labels, and a control panel showing the selected coordinates](docs/screenshots/day18-star-map.jpg)
 
-Day 19 and Day 20 render through Mapbox and need a valid access token in `config.js`
-before they will draw anything - screenshots pending.
+### Day 19 - Global Rocket Launches 3D Globe
+
+960 launches across 8 countries, each country extruded and coloured by launch volume - the
+USA dominates in deep red, Europe in orange.
+
+![Global Rocket Launches - a dark 3D globe with the United States extruded in deep red and European countries in orange, beside panels reading 960 total launches, 8 countries, top country USA](docs/screenshots/day19-rocket-launches.jpg)
+
+### Day 20 - Live Ocean Currents Globe
+
+Heatmap mode, showing live current velocities pulled from the Open-Meteo marine API with
+named hotspots for the Gulf Stream, Humboldt Current and Antarctic Circumpolar.
+
+![Live Ocean Currents - a dark globe over a starfield with a blue current heatmap in the southern ocean and red markers labelling the Gulf Stream, Humboldt Current and Antarctic Circumpolar](docs/screenshots/day20-ocean-currents.jpg)
+
+Both Mapbox projects need a valid access token in `config.js` before they draw anything.
 
 ## Running a project
 
