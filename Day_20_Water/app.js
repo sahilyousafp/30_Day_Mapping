@@ -1,0 +1,456 @@
+// Mapbox access token, loaded from config.js (gitignored - see config.example.js)
+if (!window.MAPBOX_TOKEN || window.MAPBOX_TOKEN === 'YOUR_MAPBOX_TOKEN_HERE') {
+    const codeStyle = 'background:#1b2230;border-radius:4px;padding:.15em .4em;' +
+        'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em';
+    document.body.insertAdjacentHTML('afterbegin', `
+        <div style="position:fixed;inset:0;z-index:9999;box-sizing:border-box;display:flex;
+                    align-items:center;justify-content:center;padding:2rem;background:#0b0f14">
+          <div style="max-width:34rem;text-align:center;color:#e6edf3;
+                      font:400 16px/1.7 system-ui,-apple-system,'Segoe UI',sans-serif">
+            <div style="font-size:1.25rem;font-weight:600;margin-bottom:.75rem">Missing Mapbox token</div>
+            <div>Copy <code style="${codeStyle}">config.example.js</code> to <code style="${codeStyle}">config.js</code> and set your token.</div>
+            <div style="margin-top:1rem;opacity:.6;font-size:.9em">Get a free token at account.mapbox.com/access-tokens</div>
+          </div>
+        </div>`);
+    throw new Error('Missing Mapbox token: copy config.example.js to config.js and set window.MAPBOX_TOKEN.');
+}
+mapboxgl.accessToken = window.MAPBOX_TOKEN;
+
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/dark-v11', // Dark style as base
+    projection: 'globe',
+    zoom: 1.5,
+    center: [0, 20],
+    antialias: true // Create smoother lines
+});
+
+// UI Elements
+const btnParticles = document.getElementById('btn-particles');
+const btnHeatmap = document.getElementById('btn-heatmap');
+const loadingIndicator = document.getElementById('loading-indicator');
+
+let currentMode = 'particles'; // 'particles' or 'heatmap'
+let oceanData = null;
+
+// Global Event Listeners
+btnParticles.addEventListener('click', () => {
+    console.log("Switched to Particles mode");
+    currentMode = 'particles';
+    btnParticles.classList.add('active');
+    btnHeatmap.classList.remove('active');
+
+    if (map.getLayer('currents-heatmap')) map.setLayoutProperty('currents-heatmap', 'visibility', 'none');
+    if (map.getLayer('hotspot-circles')) map.setLayoutProperty('hotspot-circles', 'visibility', 'none');
+    if (map.getLayer('hotspot-labels')) map.setLayoutProperty('hotspot-labels', 'visibility', 'none');
+});
+
+btnHeatmap.addEventListener('click', () => {
+    console.log("Switched to Heatmap mode");
+    currentMode = 'heatmap';
+    btnHeatmap.classList.add('active');
+    btnParticles.classList.remove('active');
+
+    if (map.getLayer('currents-heatmap')) map.setLayoutProperty('currents-heatmap', 'visibility', 'visible');
+    if (map.getLayer('hotspot-circles')) map.setLayoutProperty('hotspot-circles', 'visibility', 'visible');
+    if (map.getLayer('hotspot-labels')) map.setLayoutProperty('hotspot-labels', 'visibility', 'visible');
+});
+
+map.on('style.load', () => {
+    map.setFog({
+        'color': 'rgb(10, 25, 47)', // Lower atmosphere
+        'high-color': 'rgb(4, 12, 28)', // Upper atmosphere
+        'horizon-blend': 0.02, // Atmosphere thickness (default 0.2 at low zooms)
+        'space-color': 'rgb(4, 12, 28)', // Background color
+        'star-intensity': 0.6 // Background star brightness (default 0.35 at low zooms )
+    });
+});
+
+map.on('load', async () => {
+    // Add solid earth style layers if needed, or rely on mapbox dark style
+    // We will add a custom water layer color to make it look deep
+
+    if (map.getLayer('water')) {
+        map.setPaintProperty('water', 'fill-color', '#0a192f');
+    }
+
+    await fetchOceanData();
+});
+
+async function fetchOceanData() {
+    loadingIndicator.classList.remove('hidden');
+    console.log("Fetching ocean data...");
+
+    // Open-Meteo Marine API
+    // We need higher resolution to see "whirlpools" (strong currents like Gulf Stream).
+    // 5 degree grid: ~180/5 * 360/5 = 36 * 72 = 2592 points.
+
+    const step = 5;
+    const chunks = [];
+
+    // Create chunks by latitude bands to keep requests manageable
+    // Expanded range: -80 to 80 to cover more of the globe
+    for (let latStart = -80; latStart < 80; latStart += 10) {
+        const chunkLocs = [];
+        for (let lat = latStart; lat < latStart + 10; lat += step) {
+            for (let lon = -180; lon < 180; lon += step) {
+                chunkLocs.push({ lat, lon });
+            }
+        }
+        chunks.push(chunkLocs);
+    }
+
+    let allFeatures = [];
+
+    // Helper for delay
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    // Fetch chunks individually so one failure doesn't kill the whole app
+    for (const chunk of chunks) {
+        try {
+            const latStr = chunk.map(l => l.lat).join(',');
+            const lonStr = chunk.map(l => l.lon).join(',');
+
+            if (!latStr) continue;
+
+            const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${latStr}&longitude=${lonStr}&current=ocean_current_velocity,ocean_current_direction&timezone=auto`;
+
+            // Add a small delay to respect rate limits
+            await delay(100);
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const data = await response.json();
+
+            const chunkFeatures = processChunk(data, chunk);
+            allFeatures = allFeatures.concat(chunkFeatures);
+            console.log(`Fetched chunk with ${chunkFeatures.length} points.`);
+
+        } catch (error) {
+            console.warn("Error fetching chunk, skipping:", error);
+            // Continue to next chunk instead of aborting
+        }
+    }
+
+    console.log(`Total features fetched: ${allFeatures.length}`);
+
+    if (allFeatures.length > 0) {
+        oceanData = {
+            type: 'FeatureCollection',
+            features: allFeatures
+        };
+        initVisualization();
+    } else {
+        alert("Failed to fetch any ocean data. Check console.");
+    }
+
+    loadingIndicator.classList.add('hidden');
+}
+
+function processChunk(apiData, locations) {
+    let features = [];
+    if (Array.isArray(apiData)) {
+
+        features = apiData.map((locData, index) => {
+            if (!locData.current) return null;
+
+            const lat = locations[index].lat;
+            const lon = locations[index].lon;
+            const velocity = locData.current.ocean_current_velocity;
+            const direction = locData.current.ocean_current_direction;
+
+            const rad = (direction - 90) * (Math.PI / 180);
+            const u = velocity * Math.cos(rad);
+            const v = velocity * Math.sin(rad);
+
+            return {
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [lon, lat]
+                },
+                properties: {
+                    u: u,
+                    v: v,
+                    mag: velocity,
+                    dir: direction
+                }
+            };
+        }).filter(f => f !== null);
+    }
+    return features;
+}
+
+// Major Ocean Currents Data with History
+const majorCurrents = [
+    {
+        name: "Gulf Stream",
+        coords: [-45, 40],
+        info: "First mapped by Benjamin Franklin in 1769, this warm Atlantic current originates in the Gulf of Mexico and warms Western Europe. It was crucial for colonial trade routes."
+    },
+    {
+        name: "Kuroshio Current",
+        coords: [145, 35],
+        info: "Known as the 'Black Tide' for its deep blue color, this Pacific current is the counterpart to the Gulf Stream. It has supported Japanese fishing and culture for millennia."
+    },
+    {
+        name: "Agulhas Current",
+        coords: [32, -32],
+        info: "The strongest western boundary current in the Southern Hemisphere. Portuguese explorers dubbed this region the 'Cape of Storms' due to the treacherous waves created where this current meets the Antarctic waters."
+    },
+    {
+        name: "Humboldt Current",
+        coords: [-78, -20],
+        info: "Also known as the Peru Current, this cold, low-salinity flow supports one of the world's most productive marine ecosystems. Named after Prussian naturalist Alexander von Humboldt."
+    },
+    {
+        name: "East Australian Current",
+        coords: [155, -30],
+        info: "Made famous by 'Finding Nemo', this warm current moves tropical water south down the Australian coast, influencing the climate of Sydney and Melbourne."
+    },
+    {
+        name: "Antarctic Circumpolar",
+        coords: [0, -55],
+        info: "The world's strongest current and the only one that flows completely around the globe. It isolates Antarctica, keeping it frozen."
+    }
+];
+
+function initVisualization() {
+    if (!oceanData) return;
+
+    // Grid for interpolation
+    const grid = {};
+    oceanData.features.forEach(f => {
+        const lon = f.geometry.coordinates[0];
+        const lat = f.geometry.coordinates[1];
+        const key = `${Math.round(lat)},${Math.round(lon)}`;
+        grid[key] = f.properties;
+    });
+
+    function getVector(lon, lat) {
+        const step = 5;
+        const rLat = Math.round(lat / step) * step;
+        const rLon = Math.round(lon / step) * step;
+        const key = `${rLat},${rLon}`;
+        return grid[key] || null;
+    }
+
+    // 1. Heatmap Layer (Blue base, Red hotspots)
+    if (!map.getSource('ocean-currents')) {
+        map.addSource('ocean-currents', {
+            type: 'geojson',
+            data: oceanData
+        });
+
+        map.addLayer({
+            id: 'currents-heatmap',
+            type: 'heatmap',
+            source: 'ocean-currents',
+            layout: { 'visibility': 'none' },
+            paint: {
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'mag'], 0, 0, 1.5, 1],
+                'heatmap-intensity': 3,
+                'heatmap-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['heatmap-density'],
+                    0, 'rgba(0,0,0,0)',
+                    0.2, 'rgba(0, 119, 190, 0.5)', // Ocean Blue
+                    0.5, 'rgba(0, 119, 190, 0.8)', // Blue
+                    0.8, 'rgb(100, 100, 255)',    // Lighter Blue
+                    0.95, 'rgb(255, 50, 50)',     // Red (Hotspots only)
+                    1, 'rgb(255, 0, 0)'           // Deep Red
+                ],
+                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 5, 9, 30],
+                'heatmap-opacity': 0.7
+            }
+        });
+    } else {
+        map.getSource('ocean-currents').setData(oceanData);
+    }
+
+    // 2. Named Hotspots Markers (Historical Info)
+    if (!map.getSource('named-hotspots')) {
+        const hotspotFeatures = majorCurrents.map(c => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: c.coords },
+            properties: { title: c.name, description: c.info }
+        }));
+
+        map.addSource('named-hotspots', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: hotspotFeatures }
+        });
+
+        // Red Circles for Hotspots
+        map.addLayer({
+            id: 'hotspot-circles',
+            type: 'circle',
+            source: 'named-hotspots',
+            layout: { 'visibility': 'none' },
+            paint: {
+                'circle-radius': 8,
+                'circle-color': '#ff0000',
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+                'circle-blur': 0.2
+            }
+        });
+
+        // Text Labels
+        map.addLayer({
+            id: 'hotspot-labels',
+            type: 'symbol',
+            source: 'named-hotspots',
+            layout: {
+                'visibility': 'none',
+                'text-field': ['get', 'title'],
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-offset': [0, 1.5],
+                'text-anchor': 'top',
+                'text-size': 12
+            },
+            paint: {
+                'text-color': '#ffffff',
+                'text-halo-color': '#000000',
+                'text-halo-width': 2
+            }
+        });
+
+        // Popup Interaction
+        map.on('click', 'hotspot-circles', (e) => {
+            const coordinates = e.features[0].geometry.coordinates.slice();
+            const description = e.features[0].properties.description;
+            const title = e.features[0].properties.title;
+
+            new mapboxgl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(`<strong>${title}</strong><p>${description}</p>`)
+                .addTo(map);
+        });
+
+        map.on('mouseenter', 'hotspot-circles', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'hotspot-circles', () => {
+            map.getCanvas().style.cursor = '';
+        });
+    }
+
+    // 3. Animated Particle Layer (Blue mostly)
+    if (map.getLayer('currents-particles')) {
+        map.removeLayer('currents-particles');
+    }
+
+    const particleLayer = {
+        id: 'currents-particles',
+        type: 'custom',
+        renderingMode: '2d',
+        onAdd: function (map, gl) {
+            this.map = map;
+            this.canvas = document.createElement('canvas');
+            this.canvas.width = this.map.getCanvas().width;
+            this.canvas.height = this.map.getCanvas().height;
+            this.context = this.canvas.getContext('2d');
+            this.map.getCanvasContainer().appendChild(this.canvas);
+            this.canvas.style.position = 'absolute';
+            this.canvas.style.top = 0;
+            this.canvas.style.left = 0;
+            this.canvas.style.pointerEvents = 'none';
+            this.canvas.style.zIndex = 2;
+
+            this.particles = [];
+            for (let i = 0; i < 4000; i++) {
+                this.particles.push(this.createParticle());
+            }
+
+            this.animate = this.animate.bind(this);
+            requestAnimationFrame(this.animate);
+        },
+
+        createParticle: function () {
+            return {
+                lon: (Math.random() * 360) - 180,
+                lat: (Math.random() * 160) - 80,
+                age: Math.random() * 100,
+                life: 50 + Math.random() * 100
+            };
+        },
+
+        render: function (gl, matrix) {
+            const width = this.map.getCanvas().width;
+            const height = this.map.getCanvas().height;
+            if (this.canvas.width !== width || this.canvas.height !== height) {
+                this.canvas.width = width;
+                this.canvas.height = height;
+            }
+            this.map.triggerRepaint();
+        },
+
+        animate: function () {
+            const ctx = this.context;
+            const width = this.canvas.width;
+            const height = this.canvas.height;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillRect(0, 0, width, height);
+            ctx.globalCompositeOperation = 'source-over';
+
+            if (currentMode !== 'particles') {
+                requestAnimationFrame(this.animate);
+                return;
+            }
+
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = 'round';
+
+            for (let i = 0; i < this.particles.length; i++) {
+                let p = this.particles[i];
+                const vec = getVector(p.lon, p.lat);
+
+                if (!vec) {
+                    this.particles[i] = this.createParticle();
+                    continue;
+                }
+
+                const speedScale = 0.15;
+                p.lon += vec.u * speedScale;
+                p.lat += vec.v * speedScale;
+                p.age++;
+
+                if (p.lon > 180) p.lon -= 360;
+                if (p.lon < -180) p.lon += 360;
+
+                if (p.age > p.life) {
+                    this.particles[i] = this.createParticle();
+                    continue;
+                }
+
+                const screenP = this.map.project([p.lon, p.lat]);
+                if (screenP.x < -10 || screenP.x > width + 10 || screenP.y < -10 || screenP.y > height + 10) {
+                    continue;
+                }
+
+                const mag = vec.mag;
+                // Blue for all, Red for hotspots
+                let color = '#0077be'; // Standard Ocean Blue
+                if (mag > 1.0) color = '#ff0000'; // Red for very fast currents (Hotspots)
+                else if (mag > 0.5) color = '#00ccff'; // Lighter blue for medium
+
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                const tailLon = p.lon - (vec.u * speedScale * 2);
+                const tailLat = p.lat - (vec.v * speedScale * 2);
+                const screenTail = this.map.project([tailLon, tailLat]);
+                ctx.moveTo(screenTail.x, screenTail.y);
+                ctx.lineTo(screenP.x, screenP.y);
+                ctx.stroke();
+            }
+            requestAnimationFrame(this.animate);
+        }
+    };
+
+    map.addLayer(particleLayer);
+}

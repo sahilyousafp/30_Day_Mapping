@@ -1,0 +1,187 @@
+:root {
+    --primary-color: #00f2ff;
+    --secondary-color: #0a192f;
+    --glass-bg: rgba(10, 25, 47, 0.7);
+    --glass-border: rgba(0, 242, 255, 0.3);
+    --text-color: #e6f1ff;
+    --accent-color: #64ffda;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Outfit', sans-serif;
+    background-color: #000;
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+#ui-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 300px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.header h1 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header p {
+    margin: 0 0 24px 0;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.control-group {
+    margin-bottom: 16px;
+}
+
+.control-group label {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    color: var(--accent-color);
+}
+
+.toggle-switch {
+    display: flex;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.toggle-switch button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.toggle-switch button.active {
+    background: var(--primary-color);
+    color: var(--secondary-color);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 242, 255, 0.4);
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--accent-color);
+}
+
+.loading.hidden {
+    display: none;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(100, 255, 218, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--accent-color);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mapbox Popup Styling */
+.mapboxgl-popup-content {
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--text-color) !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    font-family: 'Outfit', sans-serif !important;
+    max-width: 300px !important;
+}
+
+.mapboxgl-popup-tip {
+    border-top-color: var(--glass-bg) !important;
+    border-bottom-color: transparent !important;
+}
+
+/* Adjust tip direction if needed */
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+    border-bottom-color: var(--glass-bg) !important;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+    border-top-color: var(--glass-bg) !important;
+}
+
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+    border-right-color: var(--glass-bg) !important;
+}
+
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+    border-left-color: var(--glass-bg) !important;
+}
+
+.mapboxgl-popup-close-button {
+    color: var(--text-color) !important;
+    font-size: 18px !important;
+    padding: 4px 8px !important;
+    right: 4px !important;
+    top: 4px !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px;
+}
+
+.mapboxgl-popup-content h3,
+.mapboxgl-popup-content strong {
+    color: var(--primary-color);
+    font-size: 16px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.mapboxgl-popup-content p {
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0;
+    opacity: 0.9;
+}

@@ -1,0 +1,98 @@
+{
+  "Orion": {
+    "name": "Orion",
+    "common_name": "The Hunter",
+    "description": "Orion is one of the most recognizable constellations in the night sky. Named after a hunter in Greek mythology, it features some of the brightest stars including Betelgeuse and Rigel. The three stars forming Orion's Belt are among the most famous asterisms in astronomy.",
+    "history": "In Greek mythology, Orion was a giant huntsman whom Zeus placed among the stars. Ancient Egyptians associated these stars with Osiris, the god of the afterlife. The constellation has been recognized across many cultures throughout history.",
+    "best_viewing": "Winter (December to March in Northern Hemisphere)",
+    "notable_features": "Orion's Belt, Orion Nebula (M42), Betelgeuse (red supergiant), Rigel (blue supergiant)"
+  },
+  "UMa": {
+    "name": "Ursa Major",
+    "common_name": "The Great Bear",
+    "description": "Ursa Major is a prominent constellation visible throughout the year in most of the northern hemisphere. Its most famous feature is the Big Dipper asterism, which many use to find Polaris, the North Star.",
+    "history": "In Greek mythology, Ursa Major represents Callisto, who was transformed into a bear by Zeus's jealous wife Hera. Native American tribes saw it as a bear being chased by hunters. It's one of the oldest named constellations.",
+    "best_viewing": "Spring (visible year-round in northern latitudes)",
+    "notable_features": "Big Dipper asterism, Mizar and Alcor (double star), pointer stars to Polaris"
+  },
+  "Cas": {
+    "name": "Cassiopeia",
+    "common_name": "The Queen",
+    "description": "Cassiopeia is a distinctive W-shaped constellation in the northern sky. Named after the vain queen in Greek mythology, it's circumpolar for most northern observers, meaning it never sets below the horizon.",
+    "history": "In mythology, Cassiopeia was the wife of King Cepheus and mother of Andromeda. Her boastfulness angered the sea nymphs, leading to her being placed in the sky where she must circle the celestial pole, sometimes hanging upside down.",
+    "best_viewing": "Fall (visible year-round in northern latitudes)",
+    "notable_features": "W or M shape, contains several open clusters including M52 and M103"
+  },
+  "Leo": {
+    "name": "Leo",
+    "common_name": "The Lion",
+    "description": "Leo is a prominent zodiac constellation representing a lion. Its distinctive sickle shape marks the lion's head and mane, while Regulus, one of the brightest stars, represents the lion's heart.",
+    "history": "Associated with the Nemean Lion slain by Hercules in Greek mythology. Ancient Egyptians worshipped it as the location where the sun appeared during the flooding of the Nile. It's been recognized as a lion across many ancient cultures.",
+    "best_viewing": "Spring (March to May)",
+    "notable_features": "Regulus (the heart), the Sickle asterism, Leo Triplet galaxies (M65, M66, NGC 3628)"
+  },
+  "Cyg": {
+    "name": "Cygnus",
+    "common_name": "The Swan (Northern Cross)",
+    "description": "Cygnus represents a swan in flight, but its cross-like pattern also gives it the name 'Northern Cross'. It flies along the Milky Way, making it rich in deep-sky objects.",
+    "history": "In Greek mythology, the constellation represents several different swans. Most commonly, it's associated with the story of Zeus disguising himself as a swan. The Chinese saw it as part of a magpie bridge in the tale of star-crossed lovers.",
+    "best_viewing": "Summer to Fall (June to November)",
+    "notable_features": "Deneb (one of the brightest stars), Northern Cross asterism, Cygnus X-1 (black hole), North America Nebula"
+  },
+  "Sco": {
+    "name": "Scorpius",
+    "common_name": "The Scorpion",
+    "description": "Scorpius is a zodiac constellation representing a scorpion. Its J-shaped pattern with the bright red star Antares at its heart is easily recognizable in the southern sky.",
+    "history": "In Greek mythology, Scorpius was the scorpion sent by Gaia to kill the hunter Orion. This is why the two constellations are never visible together - as one rises, the other sets. Ancient Sumerians called it the 'creature with the burning sting'.",
+    "best_viewing": "Summer (June to August in Northern Hemisphere)",
+    "notable_features": "Antares (red supergiant 'rival of Mars'), rich star clusters including M4 and M80, lies in the direction of the galactic center"
+  },
+  "Tau": {
+    "name": "Taurus",
+    "common_name": "The Bull",
+    "description": "Taurus is a prominent zodiac constellation representing a charging bull. It contains two of the nearest open star clusters: the Pleiades and the Hyades.",
+    "history": "Associated with the bull form taken by Zeus to abduct Europa in Greek mythology. Ancient cultures from Mesopotamia to Egypt recognized this constellation, often as a bull. The Pleiades cluster within it has been noted by civilizations worldwide.",
+    "best_viewing": "Winter (November to March)",
+    "notable_features": "Aldebaran (orange giant eye), Pleiades (Seven Sisters), Hyades cluster, Crab Nebula (M1)"
+  },
+  "Gem": {
+    "name": "Gemini",
+    "common_name": "The Twins",
+    "description": "Gemini represents the twins Castor and Pollux from Greek mythology. Two bright stars bearing their names mark the heads of the twins.",
+    "history": "In Greek mythology, Castor and Pollux were twin half-brothers. Pollux was immortal while Castor was mortal. When Castor died, Pollux asked Zeus to let him share his immortality, and they were placed together in the sky.",
+    "best_viewing": "Winter to Spring (December to April)",
+    "notable_features": "Castor (six-star system), Pollux (closest giant star to Earth), location of 1930 discovery of Pluto"
+  },
+  "Vir": {
+    "name": "Virgo",
+    "common_name": "The Maiden",
+    "description": "Virgo is the second-largest constellation and a member of the zodiac. It contains the Virgo Cluster, one of the closest galaxy clusters to the Milky Way.",
+    "history": "Often associated with Persephone, daughter of Demeter, or with the goddess of justice Astraea. The constellation has been linked to harvest goddesses across many ancient cultures, appearing in the sky during harvest season.",
+    "best_viewing": "Spring (March to June)",
+    "notable_features": "Spica (bright blue star), Virgo Cluster of galaxies (over 2000 galaxies), home to many Messier objects"
+  },
+  "Aqr": {
+    "name": "Aquarius",
+    "common_name": "The Water Bearer",
+    "description": "Aquarius is a zodiac constellation representing a person pouring water from a jar. Despite its size, it contains no particularly bright stars.",
+    "history": "Associated with Ganymede in Greek mythology, a beautiful youth taken to Olympus to serve as Zeus's cup-bearer. Many ancient cultures saw it as water-related due to its appearance during the rainy season.",
+    "best_viewing": "Fall (September to November)",
+    "notable_features": "Saturn Nebula, Helix Nebula (closest planetary nebula), several meteor showers radiate from this region"
+  },
+  "And": {
+    "name": "Andromeda",
+    "common_name": "The Chained Maiden",
+    "description": "Andromeda represents the princess from Greek mythology who was chained to a rock as a sacrifice. It's most famous for containing the Andromeda Galaxy.",
+    "history": "In Greek mythology, Andromeda was the daughter of Cassiopeia and Cepheus. She was chained as a sacrifice to appease Poseidon but was rescued by Perseus. All these characters appear as neighboring constellations.",
+    "best_viewing": "Fall (September to December)",
+    "notable_features": "Andromeda Galaxy (M31 - nearest major galaxy), Alpheratz (shared with Pegasus), Blue Snowball Nebula"
+  },
+  "Per": {
+    "name": "Perseus",
+    "common_name": "The Hero",
+    "description": "Perseus represents the Greek hero who slayed Medusa and rescued Andromeda. It's a prominent constellation in the northern winter sky.",
+    "history": "Named after the legendary Greek hero Perseus, son of Zeus. The constellation depicts him holding the head of Medusa, represented by the famous variable star Algol, known as the 'Demon Star'.",
+    "best_viewing": "Fall to Winter (November to February)",
+    "notable_features": "Algol (eclipsing binary 'Demon Star'), Double Cluster (NGC 869 and 884), Perseid meteor shower radiant"
+  }
+}

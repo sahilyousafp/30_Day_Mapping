@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Constellation Map Platform</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="control-panel">
+        <h1>⭐ Star Map Platform</h1>
+        
+        <div class="instruction">
+            📍 Click on the map to select your location, then set the date and time to generate constellation overlay!
+        </div>
+
+        <div class="info-box">
+            <p><strong>Selected Location:</strong></p>
+            <p id="selectedLat">Latitude: Not selected</p>
+            <p id="selectedLon">Longitude: Not selected</p>
+        </div>
+
+        <h2>🕐 Date & Time</h2>
+        <div class="form-group">
+            <label for="dateInput">Date:</label>
+            <input type="date" id="dateInput" required>
+        </div>
+
+        <div class="form-group">
+            <label for="timeInput">Time:</label>
+            <input type="time" id="timeInput" value="20:00" required>
+        </div>
+
+        <button id="generateBtn" disabled onclick="generateStars()">Generate Stars</button>
+        
+        <div id="statusMsg"></div>
+        <div id="starCount"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

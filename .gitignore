@@ -1,0 +1,52 @@
+# ---- Python ----
+30day/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ---- Node ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# ---- Secrets / local config ----
+.env
+.env.*
+!.env.example
+*.key
+secrets.json
+config.js
+!config.example.js
+
+# ---- Large astronomy & geo datasets (see README for download steps) ----
+*.bsp
+*.dat
+*.bsp.download
+*.tif
+*.tiff
+*.gpkg
+*.nc
+*.hdf
+*.zip
+
+# ---- Editors / OS ----
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ---- Build / logs ----
+dist/
+build/
+*.log

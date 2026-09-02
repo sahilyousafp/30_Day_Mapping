@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 20: Live Ocean Currents Globe</title>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div id="ui-container">
+        <div class="header">
+            <h1>Live Ocean Currents</h1>
+            <p>Real-time simulation & hotspots</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="layer-toggle">Visualization Mode</label>
+                <div class="toggle-switch">
+                    <button id="btn-particles" class="active">Particles</button>
+                    <button id="btn-heatmap">Heatmap</button>
+                </div>
+            </div>
+            <div id="loading-indicator" class="loading hidden">
+                <div class="spinner"></div>
+                <span>Fetching live data...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
